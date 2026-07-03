@@ -1,0 +1,20 @@
+{
+  "rule_name": "SDLT residential standard rates (as implemented by sdlt_engine.py)",
+  "summary": "Stamp Duty Land Tax on a residential purchase, computed as a progressive 'slice' calculation: 0% on the portion of the price up to £250,000, 5% on the portion from £250,000 to £925,000, 10% on the portion from £925,000 to £1,500,000, and 12% on anything above £1,500,000. The result is rounded down to the whole pound. Prices that are missing, zero or negative are treated as no tax due.",
+  "conditions": [
+    "Live path is calc_v2 via compute_duty; the flag3 parameter is accepted but has no effect (the 3% surcharge branch is dead code)",
+    "Negative, zero or missing prices return 0 (mainframe 'no consideration' convention)",
+    "Tax is truncated to the whole pound with int()"
+  ],
+  "assumptions": [
+    "calc_v1 (pre-2014 slab system) and the _vat helper are dead code and were ignored",
+    "The disabled _selfcheck expects values consistent with the live band table, so the table appears to be what production actually runs",
+    "Thresholds in the _T dict were taken at face value; the code does not indicate which statutory year they correspond to"
+  ],
+  "bands": [
+    { "lower": 0, "upper": 250000, "rate": 0.0 },
+    { "lower": 250000, "upper": 925000, "rate": 0.05 },
+    { "lower": 925000, "upper": 1500000, "rate": 0.1 },
+    { "lower": 1500000, "upper": null, "rate": 0.12 }
+  ]
+}
