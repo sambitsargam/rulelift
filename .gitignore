@@ -8,3 +8,4 @@ workdir/
 data/transactions.csv
 .DS_Store
 .env
+.claude/
