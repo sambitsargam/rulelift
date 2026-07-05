@@ -96,8 +96,15 @@ class Pipeline:
             self.status[stage_id] = "ready"
 
     # ------------------------------------------------------------- stages
+    # write-phase stages are re-runnable: the user can try another edit,
+    # re-measure impact, or regenerate the change with a different strategy
+    RERUNNABLE = (5, 6, 7)
+
     def run_stage(self, stage_id: int, payload: dict) -> dict:
-        if self.status.get(stage_id) not in ("ready", "error", "rejected"):
+        approvable = ("ready", "error", "rejected") + (
+            ("done",) if stage_id in self.RERUNNABLE else ()
+        )
+        if self.status.get(stage_id) not in approvable:
             raise HTTPException(
                 409,
                 f"stage {stage_id} is not awaiting approval (status: {self.status.get(stage_id)})",
@@ -310,10 +317,13 @@ def reject_stage(stage_id: int):
         if PIPELINE.status.get(stage_id) not in ("ready", "error", "done"):
             raise HTTPException(409, "stage cannot be rejected in its current status")
         PIPELINE.status[stage_id] = "rejected"
-        # rejecting halts everything downstream
+        # rejecting halts everything downstream and invalidates any results
+        # that were computed from the now-rejected stage
         for s in STAGES:
-            if s["id"] > stage_id and PIPELINE.status[s["id"]] in ("ready",):
+            if s["id"] > stage_id and PIPELINE.status[s["id"]] != "locked":
                 PIPELINE.status[s["id"]] = "locked"
+                PIPELINE.results.pop(s["id"], None)
+                PIPELINE.errors.pop(s["id"], None)
         return PIPELINE.state()
 
 
