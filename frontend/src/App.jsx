@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "./api.js";
+import Landing from "./components/Landing.jsx";
 import PlanRail from "./components/PlanRail.jsx";
 import { ApproveBar, ErrorNote } from "./components/ui.jsx";
 import { Stage1, Stage2, Stage3, Stage4, Stage5, Stage6, Stage7 } from "./components/stages.jsx";
@@ -22,6 +23,13 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [fatal, setFatal] = useState(null);
+  const [route, setRoute] = useState(window.location.hash === "#/app" ? "app" : "landing");
+
+  useEffect(() => {
+    const onHash = () => setRoute(window.location.hash === "#/app" ? "app" : "landing");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -52,6 +60,9 @@ export default function App() {
       setBusy(false);
     }
   };
+
+  if (route === "landing")
+    return <Landing onLaunch={() => (window.location.hash = "#/app")} />;
 
   if (fatal)
     return (

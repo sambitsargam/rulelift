@@ -1,4 +1,5 @@
 import React from "react";
+import { Mark } from "./Landing.jsx";
 
 const STATUS_META = {
   locked: { icon: "○", cls: "text-slate-600", label: "locked" },
@@ -46,9 +47,12 @@ export default function PlanRail({ stages, active, onSelect, integrity, llm }) {
   return (
     <aside className="flex w-72 shrink-0 flex-col border-r border-slate-800 bg-slate-900/40 p-4">
       <div className="mb-6 px-3">
-        <h1 className="text-xl font-bold tracking-tight text-white">
-          Rule<span className="text-sky-400">Lift</span>
-        </h1>
+        <a href="#/" className="flex items-center gap-2.5" title="Back to the landing page">
+          <Mark className="h-7 w-7" />
+          <h1 className="text-xl font-bold tracking-tight text-white">
+            Rule<span className="text-sky-400">Lift</span>
+          </h1>
+        </a>
         <p className="mt-1 text-xs leading-relaxed text-slate-500">
           Extract → prove → change a buried business rule, with an approval gate at every step.
         </p>

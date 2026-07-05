@@ -21,6 +21,8 @@ deterministic Python. The model is never the judge of its own work.
 make demo          # builds everything, serves http://localhost:8877
 ```
 
+The app opens on a landing page — hit **Launch the demo** to enter the seven-stage pipeline.
+
 Requirements: Python 3.11+, Node 18+, `make`. No database, no auth, no manual data setup —
 the app downloads HM Land Registry Price Paid Data on first run (falling back to a realistic
 synthetic dataset if offline).
