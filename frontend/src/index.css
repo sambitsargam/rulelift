@@ -1,14 +1,65 @@
 @import "tailwindcss";
 
+@theme {
+  /* ledger-paper palette */
+  --color-paper: #f4f1e7;
+  --color-sheet: #fdfbf4;
+  --color-well: #ede8d9;
+  --color-ink: #211c12;
+  --color-faint: #6f6757;
+  --color-rule: #dcd4c0;
+  --color-ruledark: #b3a88e;
+  --color-moss: #1f5c3a;
+  --color-mosssoft: #e4ecdf;
+  --color-blood: #9c2f1f;
+  --color-bloodsoft: #f4e4dd;
+  --color-brass: #7d5a10;
+  --color-brasssoft: #f0e7d0;
+
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Instrument Sans", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  @apply bg-slate-950 text-slate-200 antialiased;
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  @apply bg-paper text-ink antialiased;
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01";
 }
 
 .mono {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
+}
+
+.serif {
+  font-family: var(--font-display);
+}
+
+/* small-caps kicker used for every section label */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* hairline-ruled panel — the only "card" in the system */
+.panel {
+  @apply border border-rule bg-sheet;
+  border-radius: 3px;
+  box-shadow: 0 1px 0 rgb(33 28 18 / 0.04);
+}
+
+::selection {
+  background: #211c12;
+  color: #f4f1e7;
 }

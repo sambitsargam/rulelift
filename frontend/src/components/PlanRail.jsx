@@ -1,25 +1,23 @@
 import React from "react";
-import { Mark } from "./Landing.jsx";
+import { Mark, Wordmark } from "./Landing.jsx";
 
 const STATUS_META = {
-  locked: { icon: "○", cls: "text-slate-600", label: "locked" },
-  ready: { icon: "◉", cls: "text-sky-400", label: "awaiting approval" },
-  running: { icon: "◌", cls: "text-amber-400 animate-pulse", label: "running" },
-  done: { icon: "●", cls: "text-emerald-400", label: "done" },
-  skipped: { icon: "◇", cls: "text-slate-500", label: "skipped" },
-  rejected: { icon: "✕", cls: "text-rose-400", label: "rejected" },
-  error: { icon: "!", cls: "text-rose-400", label: "error" },
+  locked: { label: "locked", cls: "text-faint/60" },
+  ready: { label: "awaiting approval", cls: "text-brass" },
+  running: { label: "running…", cls: "text-brass animate-pulse" },
+  done: { label: "done ✓", cls: "text-moss" },
+  skipped: { label: "skipped", cls: "text-faint" },
+  rejected: { label: "rejected ✕", cls: "text-blood" },
+  error: { label: "error !", cls: "text-blood" },
 };
 
 export default function PlanRail({ stages, active, onSelect, integrity, llm }) {
   const readStages = stages.filter((s) => s.phase === "read");
   const writeStages = stages.filter((s) => s.phase === "write");
 
-  const Section = ({ title, tone, items }) => (
-    <div className="mb-4">
-      <div className={`mb-2 px-3 text-[11px] font-bold uppercase tracking-widest ${tone}`}>
-        {title}
-      </div>
+  const Section = ({ title, tone, border, items }) => (
+    <div className="mb-6">
+      <div className={`kicker mb-1 border-b-2 pb-2 ${tone} ${border}`}>{title}</div>
       {items.map((stage) => {
         const meta = STATUS_META[stage.status] || STATUS_META.locked;
         const isActive = active === stage.id;
@@ -27,16 +25,19 @@ export default function PlanRail({ stages, active, onSelect, integrity, llm }) {
           <button
             key={stage.id}
             onClick={() => onSelect(stage.id)}
-            className={`mb-1 flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition ${
-              isActive ? "bg-slate-800/80 ring-1 ring-slate-700" : "hover:bg-slate-800/40"
+            className={`flex w-full items-baseline gap-3 border-b border-rule px-1 py-3 text-left transition-colors ${
+              isActive ? "bg-sheet" : "hover:bg-sheet/60"
             }`}
+            style={isActive ? { boxShadow: "inset 2px 0 0 #211c12" } : undefined}
           >
-            <span className={`mt-0.5 w-4 text-center text-sm ${meta.cls}`}>{meta.icon}</span>
+            <span className="mono w-6 shrink-0 text-[11px] font-medium text-faint">
+              {String(stage.id).padStart(2, "0")}
+            </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-slate-200">
-                {stage.id}. {stage.name}
+              <span className={`block text-[14px] ${isActive ? "font-semibold" : "font-medium"}`}>
+                {stage.name}
               </span>
-              <span className={`block text-[11px] ${meta.cls}`}>{meta.label}</span>
+              <span className={`mono block text-[10.5px] ${meta.cls}`}>{meta.label}</span>
             </span>
           </button>
         );
@@ -45,41 +46,36 @@ export default function PlanRail({ stages, active, onSelect, integrity, llm }) {
   );
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-slate-800 bg-slate-900/40 p-4">
-      <div className="mb-6 px-3">
-        <a href="#/" className="flex items-center gap-2.5" title="Back to the landing page">
-          <Mark className="h-7 w-7" />
-          <h1 className="text-xl font-bold tracking-tight text-white">
-            Rule<span className="text-sky-400">Lift</span>
-          </h1>
-        </a>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500">
-          Extract → prove → change a buried business rule, with an approval gate at every step.
-        </p>
-      </div>
+    <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-r border-rule bg-paper px-5 py-5">
+      <a href="#/" className="flex items-center gap-2.5" title="Back to the landing page">
+        <Mark className="h-7 w-7" />
+        <Wordmark />
+      </a>
+      <p className="mt-2 mb-7 text-[12px] leading-relaxed text-faint">
+        Extract → prove → change a buried business rule, with an approval gate at every step.
+      </p>
 
-      <Section title="Read-only analysis" tone="text-sky-500" items={readStages} />
-      <Section title="Gated write phase" tone="text-amber-500" items={writeStages} />
+      <Section title="Read-only analysis" tone="text-moss" border="border-moss" items={readStages} />
+      <Section title="Gated write phase" tone="text-brass" border="border-brass" items={writeStages} />
 
-      <div className="mt-auto space-y-2 px-3 pt-4 text-[11px] leading-relaxed">
+      <div className="mt-auto space-y-2.5 pt-4">
         <div
-          className={`rounded-lg border p-2.5 ${
-            integrity?.untouched
-              ? "border-emerald-800/60 bg-emerald-950/30 text-emerald-400"
-              : "border-rose-700 bg-rose-950/40 text-rose-300"
+          className={`border-l-2 py-1 pl-3 text-[11.5px] leading-snug ${
+            integrity?.untouched ? "border-moss text-moss" : "border-blood text-blood"
           }`}
         >
-          {integrity?.untouched ? "✓ Original legacy file untouched" : "⚠ LEGACY FILE MODIFIED"}
-          <div className="mono mt-1 truncate text-[10px] opacity-60">
+          {integrity?.untouched ? "Original legacy file untouched ✓" : "LEGACY FILE MODIFIED ⚠"}
+          <div className="mono mt-0.5 truncate text-[10px] text-faint">
             sha256 {integrity?.sha256?.slice(0, 16)}…
           </div>
         </div>
-        <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-2.5 text-slate-400">
-          LLM: <span className={llm?.mode === "live" ? "text-emerald-400" : "text-amber-400"}>
+        <div className="border-l-2 border-ruledark py-1 pl-3 text-[11.5px] leading-snug text-faint">
+          LLM:{" "}
+          <span className={llm?.mode === "live" ? "font-semibold text-ink" : "font-semibold text-brass"}>
             {llm?.mode === "live" ? `live (${llm.model})` : "mock — cached spec"}
           </span>
-          <div className="mt-0.5 text-[10px] text-slate-600">
-            Used only for extract & code-gen. All proofs are deterministic.
+          <div className="mt-0.5 text-[10.5px]">
+            Used only for extract &amp; code-gen. All proofs are deterministic.
           </div>
         </div>
       </div>

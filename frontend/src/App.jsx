@@ -67,15 +67,15 @@ export default function App() {
   if (fatal)
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="rounded-xl border border-rose-800 bg-rose-950/40 p-8 text-center">
-          <div className="text-lg font-semibold text-rose-300">Backend unreachable</div>
-          <div className="mono mt-2 text-xs text-rose-400">{fatal}</div>
-          <div className="mt-3 text-sm text-slate-400">Start it with <span className="mono">make demo</span></div>
+        <div className="border-l-2 border-blood bg-bloodsoft px-8 py-6">
+          <div className="serif text-lg font-semibold text-blood">Backend unreachable</div>
+          <div className="mono mt-2 text-xs text-ink/70">{fatal}</div>
+          <div className="mt-3 text-sm text-faint">Start it with <span className="mono">make demo</span></div>
         </div>
       </div>
     );
 
-  if (!state) return <div className="p-10 text-slate-500">Loading…</div>;
+  if (!state) return <div className="mono p-10 text-sm text-faint">Loading…</div>;
 
   const stage = state.stages.find((s) => s.id === active);
   const View = STAGE_VIEWS[active];
@@ -96,25 +96,28 @@ export default function App() {
       />
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-6xl p-8">
-          <div className="mb-6 flex items-start justify-between">
+          <div className="mb-7 flex items-start justify-between border-b border-ruledark pb-5">
             <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                Stage {stage.id} of 7 · {stage.phase === "read" ? "read-only analysis" : "gated write phase"}
+              <div className={`kicker ${stage.phase === "read" ? "text-moss" : "text-brass"}`}>
+                Stage {String(stage.id).padStart(2, "0")} of 07 · {stage.phase === "read" ? "read-only analysis" : "gated write phase"}
               </div>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-white">{title}</h2>
-              <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+              <h2 className="serif mt-1.5 text-[30px] font-semibold tracking-tight">{title}</h2>
+              <p className="mt-1 text-[13.5px] text-faint">{subtitle}</p>
             </div>
             <button
               onClick={() => act(async () => { await api.reset(); setActive(1); })}
-              className="rounded-lg border border-slate-800 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-800/60"
+              className="mono border border-ruledark px-3 py-1.5 text-[11px] text-faint hover:bg-sheet hover:text-ink"
+              style={{ borderRadius: 3 }}
             >
               Reset demo
             </button>
           </div>
 
           {stage.status === "locked" ? (
-            <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-10 text-center text-sm text-slate-500">
-              This stage is locked until the previous stages are approved.
+            <div className="border border-dashed border-ruledark p-12 text-center">
+              <span className="mono text-[12.5px] text-faint">
+                This stage is locked until the previous stages are approved.
+              </span>
             </div>
           ) : (
             <>

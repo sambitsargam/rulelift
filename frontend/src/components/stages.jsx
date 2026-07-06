@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import { gbp, num, pct, api } from "../api.js";
 import {
-  Card, Headline, BandsTable, CodeBlock, DiffView, RecordTable, ErrorNote,
+  Card, Headline, BandsTable, CodeBlock, DiffView, RecordTable, ErrorNote, Button,
 } from "./ui.jsx";
 
 /* ------------------------------------------------ Stage 1: Ingest */
@@ -26,24 +26,24 @@ export function Stage1({ stage }) {
       <div className="grid grid-cols-3 gap-4">
         <Card title="Legacy code">
           <Headline value={num(r.code.line_count)} label="lines, no documentation" sub={`${r.code.function_count} functions · docstrings: ${r.code.has_docstrings ? "some" : "none"}`} />
-          <div className="mono mt-3 text-xs text-slate-500">{r.code.functions.join(" · ")}</div>
+          <div className="mono mt-3 text-[11px] leading-relaxed text-faint">{r.code.functions.join(" · ")}</div>
         </Card>
         <Card title="Dataset">
-          <Headline value={num(q.total_rows)} label="historical transactions" sub={`source: ${r.dataset_source.source === "cached" ? "cached download" : r.dataset_source.source}`} tone="accent" />
+          <Headline value={num(q.total_rows)} label="historical transactions" sub={`source: ${r.dataset_source.source === "cached" ? "cached download" : r.dataset_source.source}`} />
         </Card>
         <Card title="Usable for replay" tone="good">
           <Headline value={num(q.valid_rows)} label="valid records" tone="good" sub={`${num(q.excluded_rows)} excluded — see triage`} />
         </Card>
       </div>
       <Card title="Data-quality triage" subtitle="every excluded row has a reason; nothing crashes on junk">
-        <div className="grid grid-cols-2 gap-4">
-          <table className="text-sm">
+        <div className="grid grid-cols-2 gap-6">
+          <table className="text-[13px]">
             <tbody>
               {Object.entries(q.quality_counts).map(([category, count]) => (
-                <tr key={category} className="border-b border-slate-800/60">
-                  <td className="py-1.5 pr-6 text-slate-400">{category.replaceAll("_", " ")}</td>
-                  <td className="py-1.5 text-right font-semibold tabular-nums">{num(count)}</td>
-                  <td className="py-1.5 pl-4 text-xs text-slate-500">{q.excluded_reasons[category] || "included in replay"}</td>
+                <tr key={category} className="border-b border-rule">
+                  <td className="py-1.5 pr-6 text-faint">{category.replaceAll("_", " ")}</td>
+                  <td className="tnum py-1.5 text-right font-semibold">{num(count)}</td>
+                  <td className="py-1.5 pl-4 text-[11.5px] text-faint">{q.excluded_reasons[category] || "included in replay"}</td>
                 </tr>
               ))}
             </tbody>
@@ -51,9 +51,9 @@ export function Stage1({ stage }) {
           <div>
             {Object.entries(q.excluded_examples || {}).length > 0 && (
               <>
-                <div className="mb-1 text-xs uppercase tracking-wider text-slate-500">Examples of excluded rows</div>
+                <div className="kicker mb-2 text-faint">Examples of excluded rows</div>
                 {Object.entries(q.excluded_examples).map(([category, rows]) => (
-                  <div key={category} className="mono text-xs text-slate-500">
+                  <div key={category} className="mono text-[11px] leading-relaxed text-faint">
                     {category}: {rows.map((x) => `${x.transaction_id}="${x.raw_price}"`).join(", ")}
                   </div>
                 ))}
@@ -88,13 +88,13 @@ export function Stage2({ stage }) {
         </Card>
         <div className="space-y-4">
           <Card title="Extracted rule — plain English" tone="good">
-            <p className="text-sm leading-relaxed text-slate-200">{r.spec.summary}</p>
+            <p className="serif text-[16px] leading-relaxed">{r.spec.summary}</p>
           </Card>
           <Card title="Extracted bands">
             <BandsTable bands={r.spec.bands} />
           </Card>
           <Card title="Conditions & assumptions" subtitle="uncertainty is surfaced, not hidden">
-            <ul className="list-disc space-y-1 pl-5 text-xs text-slate-400">
+            <ul className="list-disc space-y-1.5 pl-5 text-[12.5px] leading-relaxed text-faint">
               {[...r.spec.conditions, ...r.spec.assumptions].map((item, i) => (
                 <li key={i}>{item}</li>
               ))}
@@ -102,13 +102,13 @@ export function Stage2({ stage }) {
           </Card>
         </div>
       </div>
-      <div className="flex items-center gap-4 text-xs text-slate-500">
+      <div className="mono flex items-center gap-5 text-[11px] text-faint">
         <span>
-          extraction mode: <b className="text-slate-300">{r.mode}</b>
+          extraction mode: <b className="text-ink">{r.mode}</b>
           {r.used_cache && " (cached spec — set OPENAI_API_KEY for live extraction)"}
         </span>
         <span>attempts: {r.attempts.map((a) => a.outcome).join(" → ")}</span>
-        <button className="text-sky-400 hover:underline" onClick={() => setShowRaw(!showRaw)}>
+        <button className="text-ink underline decoration-ruledark underline-offset-2 hover:decoration-ink" onClick={() => setShowRaw(!showRaw)}>
           {showRaw ? "hide" : "show"} raw JSON spec
         </button>
       </div>
@@ -132,18 +132,18 @@ export function Stage3({ stage }) {
     );
   return (
     <Card title="Compiled: apply_extracted(price)" tone="good" subtitle={r.engine}>
-      <table className="text-sm tabular-nums">
+      <table className="text-[13px]">
         <thead>
-          <tr className="text-left text-xs uppercase tracking-wider text-slate-500">
-            <th className="py-2 pr-8">Probe price</th>
-            <th className="py-2">Computed tax</th>
+          <tr className="kicker text-left text-faint">
+            <th className="py-2 pr-10 font-medium">Probe price</th>
+            <th className="py-2 font-medium">Computed tax</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="tnum">
           {r.probe_values.map((probe) => (
-            <tr key={probe.price} className="border-t border-slate-800/60">
-              <td className="py-1.5 pr-8">{gbp(probe.price)}</td>
-              <td className="py-1.5 font-semibold text-emerald-400">{gbp(probe.tax)}</td>
+            <tr key={probe.price} className="border-t border-rule">
+              <td className="py-1.5 pr-10">{gbp(probe.price)}</td>
+              <td className="py-1.5 font-semibold text-moss">{gbp(probe.tax)}</td>
             </tr>
           ))}
         </tbody>
@@ -172,7 +172,7 @@ export function Stage4({ stage }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Card tone="good">
+        <Card title="Extraction fidelity" tone="good">
           <Headline
             value={pct(fid.rate)}
             tone="good"
@@ -180,27 +180,32 @@ export function Stage4({ stage }) {
             sub={fid.mismatches === 0 ? "the extracted rule is behaviourally identical to the legacy code" : `${num(fid.mismatches)} mismatches — flagged below, not hidden`}
           />
         </Card>
-        <Card tone="bad">
+        <Card title="Legacy drift vs statute" tone="bad">
           <Headline
             value={gbp(Math.abs(drift.total_delta_gbp))}
             tone="bad"
-            label={`legacy drift: wrong on ${num(drift.records_affected)} transactions`}
+            label={`wrong on ${num(drift.records_affected)} transactions`}
             sub={drift.direction}
           />
         </Card>
       </div>
 
       {drift.records_affected > 0 && (
-        <div className="rounded-xl border border-rose-700/60 bg-rose-950/30 p-4 text-sm text-rose-200">
-          <b>⚠ The legacy system disagrees with the official statutory rule.</b>{" "}
-          Replay against the hard-coded official rates shows the legacy engine {drift.direction.replace("legacy ", "")} on{" "}
-          {num(drift.records_affected)} of {num(r.total_records)} records — {gbp(Math.abs(drift.total_delta_gbp))} in total.
-          The nil-rate threshold in the code was never updated after the rates changed.
+        <div className="border-l-2 border-blood bg-bloodsoft px-5 py-4">
+          <div className="serif text-[16px] font-semibold text-blood">
+            The legacy system disagrees with the official statutory rule.
+          </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink/80">
+            Replay against the hard-coded official rates shows the legacy engine{" "}
+            {drift.direction.replace("legacy ", "")} on {num(drift.records_affected)} of{" "}
+            {num(r.total_records)} records — {gbp(Math.abs(drift.total_delta_gbp))} in total. The
+            nil-rate threshold in the code was never updated after the rates changed.
+          </p>
         </div>
       )}
 
       <Card>
-        <div className="mb-3 flex gap-2 text-xs">
+        <div className="mb-4 flex gap-6 border-b border-rule text-[12.5px]">
           <TabButton active={tab === "drift"} onClick={() => setTab("drift")}>
             Drift records (legacy vs official)
           </TabButton>
@@ -212,30 +217,32 @@ export function Stage4({ stage }) {
           <RecordTable
             rows={drift.samples}
             columns={[
-              { key: "transaction_id", label: "Record", className: "mono text-slate-500" },
+              { key: "transaction_id", label: "Record", className: "mono text-faint" },
               { key: "price", label: "Price", render: (x) => gbp(x.price) },
               { key: "legacy_tax", label: "Legacy charged", render: (x) => gbp(x.legacy_tax) },
               { key: "official_tax", label: "Law requires", render: (x) => gbp(x.official_tax) },
-              { key: "delta", label: "Δ", className: "text-rose-400 font-semibold", render: (x) => gbp(x.delta) },
+              { key: "delta", label: "Δ", className: "font-semibold text-blood", render: (x) => gbp(x.delta) },
             ]}
           />
         ) : fid.mismatch_samples.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-500">
+          <p className="py-6 text-center text-[13px] text-faint">
             No mismatches — the extracted spec reproduces the legacy behaviour on every record.
           </p>
         ) : (
           <RecordTable
             rows={fid.mismatch_samples}
             columns={[
-              { key: "transaction_id", label: "Record", className: "mono text-slate-500" },
+              { key: "transaction_id", label: "Record", className: "mono text-faint" },
               { key: "price", label: "Price", render: (x) => gbp(x.price) },
               { key: "legacy_tax", label: "Legacy", render: (x) => gbp(x.legacy_tax) },
               { key: "extracted_tax", label: "Extracted", render: (x) => gbp(x.extracted_tax) },
-              { key: "delta", label: "Δ", className: "text-amber-400", render: (x) => gbp(x.delta) },
+              { key: "delta", label: "Δ", className: "text-brass", render: (x) => gbp(x.delta) },
             ]}
           />
         )}
-        <p className="mt-2 text-[11px] text-slate-600">showing first {Math.min(50, tab === "drift" ? drift.samples.length : fid.mismatch_samples.length)} — counts above cover all records</p>
+        <p className="mono mt-2 text-[10.5px] text-faint">
+          showing first {Math.min(50, tab === "drift" ? drift.samples.length : fid.mismatch_samples.length)} — counts above cover all records
+        </p>
       </Card>
     </div>
   );
@@ -276,56 +283,56 @@ export function Stage5({ stage, onApproveWithPayload, busy }) {
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && doPreview()}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-500"
+              className="w-full border border-ruledark bg-sheet px-4 py-2.5 text-[14px] text-ink outline-none placeholder:text-faint/70 focus:border-ink"
+              style={{ borderRadius: 3 }}
               placeholder='e.g. "raise the nil-rate threshold to £300,000" or "change the 5% rate to 6%"'
             />
-            <button
-              onClick={doPreview}
-              className="shrink-0 rounded-lg border border-sky-700 px-4 py-2 text-sm font-medium text-sky-300 hover:bg-sky-950/40"
-            >
+            <Button variant="primary" onClick={doPreview} className="shrink-0">
               Preview
-            </button>
+            </Button>
           </div>
           <ErrorNote error={error} />
           {preview && (
-            <div className="mt-4">
-              <div className="mb-2 rounded-lg border border-sky-800/60 bg-sky-950/30 p-3 text-sm text-sky-200">
+            <div className="mt-5">
+              <div className="border-l-2 border-brass bg-brasssoft px-4 py-2.5 text-[13px]">
                 Parsed as: <b>{preview.description}</b>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="mt-4 grid grid-cols-2 gap-6">
                 <div>
-                  <div className="mb-1 text-xs uppercase tracking-wider text-slate-500">Current rule</div>
+                  <div className="kicker mb-2 text-faint">Current rule</div>
                   <BandsTable bands={preview.before_bands} />
                 </div>
                 <div>
-                  <div className="mb-1 text-xs uppercase tracking-wider text-slate-500">Proposed rule</div>
+                  <div className="kicker mb-2 text-faint">Proposed rule</div>
                   <BandsTable bands={preview.after_bands} compareTo={preview.before_bands} />
                 </div>
               </div>
-              <button
-                onClick={() => onApproveWithPayload({ instruction })}
-                disabled={busy}
-                className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"
-              >
-                {busy ? "Applying…" : "Approve this change"}
-              </button>
+              <div className="mt-5">
+                <Button
+                  variant="approve"
+                  onClick={() => onApproveWithPayload({ instruction })}
+                  disabled={busy}
+                >
+                  {busy ? "Applying…" : "Approve this change"}
+                </Button>
+              </div>
             </div>
           )}
         </Card>
       )}
       {r && (
         <Card title="Approved change" tone="good">
-          <p className="mb-3 text-sm text-slate-200">
+          <p className="serif mb-4 text-[16px]">
             {r.description}
-            {r.instruction && <span className="text-slate-500"> — from “{r.instruction}”</span>}
+            {r.instruction && <span className="text-faint"> — from “{r.instruction}”</span>}
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <div className="mb-1 text-xs uppercase tracking-wider text-slate-500">Before</div>
+              <div className="kicker mb-2 text-faint">Before</div>
               <BandsTable bands={r.before_bands} />
             </div>
             <div>
-              <div className="mb-1 text-xs uppercase tracking-wider text-slate-500">After</div>
+              <div className="kicker mb-2 text-faint">After</div>
               <BandsTable bands={r.after_bands} compareTo={r.before_bands} />
             </div>
           </div>
@@ -352,7 +359,7 @@ export function Stage6({ stage }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-4">
-        <Card tone={saving ? "good" : "warn"}>
+        <Card title="Total effect" tone={saving ? "good" : "warn"}>
           <Headline
             value={gbp(Math.abs(r.total_delta_gbp))}
             tone={saving ? "good" : "bad"}
@@ -360,19 +367,18 @@ export function Stage6({ stage }) {
             sub={`vs ${gbp(r.current_total_tax_gbp)} under the current rule`}
           />
         </Card>
-        <Card>
+        <Card title="Reach">
           <Headline
             value={num(r.records_affected)}
-            tone="accent"
             label="real transactions affected"
             sub={`${num(r.records_unchanged)} unchanged · avg ${gbp(Math.abs(r.avg_delta_per_affected_gbp))} per affected record`}
           />
         </Card>
-        <Card>
+        <Card title="Winners / losers">
           <Headline
             value={`${num(r.winners_pay_less)} / ${num(r.losers_pay_more)}`}
             label="pay less / pay more"
-            sub="winners vs losers under the proposed rule"
+            sub="under the proposed rule"
           />
         </Card>
       </div>
@@ -380,15 +386,30 @@ export function Stage6({ stage }) {
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={r.histogram} margin={{ top: 10, right: 10, bottom: 5, left: 10 }}>
-              <XAxis dataKey="bucket" tick={{ fill: "#94a3b8", fontSize: 11 }} interval={0} angle={-14} textAnchor="end" height={50} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
-              <Tooltip
-                contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: "#e2e8f0" }}
+              <XAxis
+                dataKey="bucket"
+                tick={{ fill: "#6f6757", fontSize: 11, fontFamily: "IBM Plex Mono" }}
+                interval={0}
+                angle={-14}
+                textAnchor="end"
+                height={50}
+                stroke="#b3a88e"
               />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              <YAxis tick={{ fill: "#6f6757", fontSize: 11, fontFamily: "IBM Plex Mono" }} stroke="#b3a88e" />
+              <Tooltip
+                cursor={{ fill: "rgba(33,28,18,0.05)" }}
+                contentStyle={{
+                  background: "#fdfbf4",
+                  border: "1px solid #dcd4c0",
+                  borderRadius: 3,
+                  fontSize: 12,
+                  fontFamily: "IBM Plex Mono",
+                  color: "#211c12",
+                }}
+              />
+              <Bar dataKey="count">
                 {r.histogram.map((bucket, i) => (
-                  <Cell key={i} fill={bucket.bucket.startsWith("saves") ? "#34d399" : "#fb7185"} />
+                  <Cell key={i} fill={bucket.bucket.startsWith("saves") ? "#1f5c3a" : "#9c2f1f"} />
                 ))}
               </Bar>
             </BarChart>
@@ -399,13 +420,13 @@ export function Stage6({ stage }) {
         <RecordTable
           rows={r.samples}
           columns={[
-            { key: "transaction_id", label: "Record", className: "mono text-slate-500" },
+            { key: "transaction_id", label: "Record", className: "mono text-faint" },
             { key: "price", label: "Price", render: (x) => gbp(x.price) },
             { key: "current_tax", label: "Current tax", render: (x) => gbp(x.current_tax) },
             { key: "proposed_tax", label: "Proposed tax", render: (x) => gbp(x.proposed_tax) },
             {
               key: "delta", label: "Δ",
-              render: (x) => <span className={x.delta < 0 ? "text-emerald-400" : "text-rose-400"}>{gbp(x.delta)}</span>,
+              render: (x) => <span className={x.delta < 0 ? "font-medium text-moss" : "font-medium text-blood"}>{gbp(x.delta)}</span>,
             },
           ]}
         />
@@ -430,32 +451,36 @@ export function Stage7({ stage }) {
   const passed = r.final.tests.passed;
   return (
     <div className="space-y-4">
-      <div className={`flex items-center gap-4 rounded-xl border p-4 ${passed ? "border-emerald-700/60 bg-emerald-950/30" : "border-rose-700/60 bg-rose-950/40"}`}>
-        <div className={`text-3xl font-bold ${passed ? "text-emerald-400" : "text-rose-400"}`}>
-          {passed ? "✓ TESTS GREEN" : "✕ TESTS RED"}
+      <div
+        className={`flex items-center gap-5 border-l-2 px-5 py-4 ${
+          passed ? "border-moss bg-mosssoft" : "border-blood bg-bloodsoft"
+        }`}
+      >
+        <div className={`serif text-[26px] font-semibold ${passed ? "text-moss" : "text-blood"}`}>
+          {passed ? "Tests green ✓" : "Tests red ✕"}
         </div>
-        <div className="text-sm text-slate-300">
+        <div className="text-[13px] leading-snug text-ink/80">
           {r.final.golden_case_count} golden cases generated from historical data · generator: {r.final.generator}
           {r.integrity_after.untouched && (
-            <span className="ml-2 text-emerald-500">· original legacy file untouched ✓</span>
+            <span className="ml-2 font-medium text-moss">· original legacy file untouched ✓</span>
           )}
         </div>
       </div>
       <Card title="Requirement this change satisfies">
-        <p className="text-sm text-slate-200">{r.requirement}</p>
-        <p className="mt-2 text-xs text-slate-500">{r.final.rationale}</p>
+        <p className="serif text-[16px]">{r.requirement}</p>
+        <p className="mt-2 text-[12.5px] leading-relaxed text-faint">{r.final.rationale}</p>
       </Card>
       <div className="grid grid-cols-2 gap-4">
         <Card title="Unified diff" subtitle="original → write-guarded working copy">
           <DiffView diff={r.final.diff} />
         </Card>
         <Card title="pytest output" subtitle="run in a subprocess against the working copy">
-          <CodeBlock maxH="max-h-[28rem]" className={passed ? "" : "border border-rose-800"}>{r.final.tests.output}</CodeBlock>
+          <CodeBlock maxH="max-h-[28rem]">{r.final.tests.output}</CodeBlock>
         </Card>
       </div>
       {r.attempts.length > 1 && (
         <Card title="Attempt history">
-          <ul className="space-y-1 text-xs text-slate-400">
+          <ul className="mono space-y-1 text-[11.5px] text-faint">
             {r.attempts.map((attempt, i) => (
               <li key={i}>
                 {i + 1}. {attempt.generator} — {attempt.skipped ? attempt.rationale : attempt.passed ? "passed" : "failed"}
@@ -471,11 +496,11 @@ export function Stage7({ stage }) {
 /* ------------------------------------------------ shared bits */
 function Intro({ title, lines }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
-      <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
-      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-400">
+    <div className="border-y border-ruledark py-8">
+      <h2 className="serif text-[24px] font-semibold tracking-tight">{title}</h2>
+      <ul className="mt-4 max-w-2xl space-y-2.5 text-[14px] leading-relaxed text-faint">
         {lines.map((line, i) => (
-          <li key={i}>{line}</li>
+          <li key={i} className="border-l-2 border-rule pl-4">{line}</li>
         ))}
       </ul>
     </div>
@@ -486,8 +511,8 @@ function TabButton({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-md px-3 py-1.5 font-medium ${
-        active ? "bg-slate-700 text-white" : "text-slate-400 hover:bg-slate-800"
+      className={`-mb-px border-b-2 pb-2.5 font-medium transition-colors ${
+        active ? "border-ink text-ink" : "border-transparent text-faint hover:text-ink"
       }`}
     >
       {children}
