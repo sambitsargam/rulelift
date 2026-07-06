@@ -23,10 +23,18 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [fatal, setFatal] = useState(null);
-  const [route, setRoute] = useState(window.location.hash === "#/app" ? "app" : "landing");
+  // routes: #/ (landing) · #/app · #/app/<stage> (deep link to a stage)
+  const parseHash = () => window.location.hash.match(/^#\/app(?:\/([1-7]))?$/);
+  const [route, setRoute] = useState(parseHash() ? "app" : "landing");
 
   useEffect(() => {
-    const onHash = () => setRoute(window.location.hash === "#/app" ? "app" : "landing");
+    const initial = parseHash();
+    if (initial?.[1]) setActive(Number(initial[1]));
+    const onHash = () => {
+      const match = parseHash();
+      setRoute(match ? "app" : "landing");
+      if (match?.[1]) setActive(Number(match[1]));
+    };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);

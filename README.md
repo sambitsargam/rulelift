@@ -1,132 +1,217 @@
+<div align="center">
+
+<img src="frontend/public/favicon.svg" width="72" alt="RuleLift mark" />
+
 # RuleLift
 
-**Legacy business-rule extraction, proof, and safe-change copilot.**
+**The rule that runs your business is buried in code nobody dares touch.<br/>RuleLift digs it out — and proves it.**
 
-RuleLift takes a piece of legacy code with a business rule buried inside it, extracts that
-rule into a plain-English + machine-executable spec, **proves** the spec matches the legacy
-code's real behaviour by replaying it over ~22,000 real UK property transactions, lets a
-non-engineer change the rule in plain English, quantifies the £ impact of that change on the
-real historical data, and generates a reviewed, test-backed code change — with a human
-approval gate at every step.
+[![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/frontend-React%20+%20Vite-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Tests](https://img.shields.io/badge/core%20tests-38%20passing-1f5c3a)](backend/tests/test_core.py)
+[![Works offline](https://img.shields.io/badge/LLM-optional%2C%20mock%20mode%20built--in-7d5a10)](#llm-modes)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**The core property: correctness is deterministic and shown live.** The LLM only *proposes*
-(rule extraction, code generation). All validation, replay, impact math, and testing is pure
-deterministic Python. The model is never the judge of its own work.
+[Quick start](#quick-start) · [How it works](#how-it-works) · [The proof model](#the-proof-model) · [Guardrails](#guardrails-enforced-in-code-not-prose) · [90-second demo](#the-demo-in-90-seconds) · [FAQ](#faq)
+
+<img src="docs/landing.png" width="920" alt="RuleLift landing page" />
+
+</div>
+
+---
+
+## The problem
+
+Every mature company runs on business rules — tax bands, pricing tiers, commission
+schedules, eligibility thresholds — that live **only** as code in systems nobody fully
+understands anymore. The person who wrote it left. The docs never existed. So every change
+becomes a consulting engagement: weeks of code archaeology, and at the end you still can't
+be sure the "recovered" rule is what production actually does.
+
+LLMs can read that code in seconds — but an LLM's summary is an *opinion*. You can't bet a
+tax filing on an opinion.
+
+## The answer: extract, then **prove**
+
+RuleLift uses the model for exactly one thing it's great at — *proposing* a structured
+reading of messy code — and then submits that proposal to a judge that cannot hallucinate:
+**deterministic replay over real historical data**.
+
+<div align="center">
+<img src="docs/prove.png" width="920" alt="Stage 4 — Prove: 100% fidelity, £35.2M legacy drift detected" />
+</div>
+
+That screen is the product in one shot, running over **21,990 real HM Land Registry
+transactions**:
+
+- **100.00% extraction fidelity** — the extracted rule reproduces the legacy engine's
+  behaviour on every single record. Not "the model says it understood" — *replayed and counted*.
+- **£35,186,823 of legacy drift** — as a by-product, replaying against the hard-coded
+  statutory rates catches the legacy engine mischarging 17,659 transactions. The demo
+  engine ships with a deliberately stale nil-rate band (the classic "temporary relief ended,
+  nobody updated the batch job" bug). Nobody tells RuleLift where the bug is. The replay finds it.
+
+Then a non-engineer types *"raise the nil-rate threshold to £300,000"*, sees the exact
+£ impact on real data, and gets a unified diff verified by a pytest suite generated from
+that same data — all behind explicit human approval at every stage.
 
 ---
 
 ## Quick start
 
 ```bash
+git clone https://github.com/sambitsargam/rulelift.git
+cd rulelift
 make demo          # builds everything, serves http://localhost:8877
 ```
 
-The app opens on a landing page — hit **Launch the demo** to enter the seven-stage pipeline.
-
-Requirements: Python 3.11+, Node 18+, `make`. No database, no auth, no manual data setup —
-the app downloads HM Land Registry Price Paid Data on first run (falling back to a realistic
-synthetic dataset if offline).
-
-**LLM mode:** put `OPENAI_API_KEY=sk-...` in a `.env` file (or export it) for live extraction
-and code-gen. With no key the app runs in **mock mode** — extraction uses a cached spec and
-code-gen uses the deterministic generator, so the full demo works with zero network.
-The model is a single constant (`RULELIFT_MODEL`, default `gpt-4.1`).
-
-Other useful targets:
+Requirements: **Python 3.11+**, **Node 18+**, `make`. No database, no auth, no manual data
+setup — on first run the app downloads HM Land Registry Price Paid Data (public CSV) and
+falls back to a realistic synthetic dataset if offline.
 
 ```bash
-make test          # unit tests for the deterministic core (38 tests, no LLM, no network)
-make headless      # the whole math pipeline in the terminal: fidelity, drift, impact, diff, pytest
+make test          # 38 unit tests for the deterministic core — no LLM, no network
+make headless      # the whole math pipeline in your terminal: fidelity, drift, impact, diff, pytest
 make dev           # backend + Vite dev server with hot reload
 ```
 
----
+### LLM modes
 
-## The demo, in 90 seconds
+| mode | when | what happens |
+|---|---|---|
+| **live** | `OPENAI_API_KEY` set (in `.env` or env) | Stage 2 extraction and stage 7 code-gen call the model (`RULELIFT_MODEL`, default `gpt-4.1`) with strict-JSON output, schema validation, and a max-3 retry loop |
+| **mock** | no key | extraction uses the bundled cached spec; code-gen uses the deterministic generator — the **full demo works with zero network** |
 
-1. **Ingest** — "Here's a legacy tax engine: 150 lines of undocumented, mainframe-ported
-   Python (`legacy/sdlt_engine.py`). A consultant would read this for weeks." Approve; the
-   app also loads ~22,000 real UK property transactions and triages every messy row.
-2. **Extract** — "The tool read the code. Here's the rule in plain English" — side by side
-   with the raw legacy source, plus the model's honest assumptions.
-3. **Prove** — the hero moment. "Watch it replay against 22,000 real transactions —
-   **100% fidelity**. It understood the system. And look at the red panel: the legacy code
-   disagrees with the official statutory rates on **17,659 transactions — £35.2M
-   undercharged**." The nil-rate threshold in the code was never updated after the rates
-   changed. Nobody told the app that; deterministic replay found it.
-4. **Edit** — type one sentence: *"raise the nil-rate threshold to £300,000"*. Preview the
-   parsed change before approving.
-5. **Impact** — "That change affects **10,438 real transactions, £23.7M** — here's the
-   distribution and who wins."
-6. **Change & Verify** — a unified diff against the engine, applied to a guarded copy,
-   verified by **71 pytest golden cases generated from the historical data**. Tests go
-   green. "Weeks of consultant work in minutes — and nothing changed without my approval."
-
-(Exact figures depend on the dataset snapshot; every number is computed live, never asserted.)
+The LLM is used for stages 2 and 7 only. Everything else — compile, replay, impact math,
+test generation, pass/fail — is plain deterministic Python, always.
 
 ---
 
 ## How it works
 
-```
-┌──────────────── READ-ONLY ANALYSIS ────────────────┐  ┌────────── GATED WRITE PHASE ──────────┐
-│ 1 INGEST   legacy code + dataset, quality triage   │  │ 5 EDIT    plain English → new spec     │
-│ 2 EXTRACT  LLM → strict-JSON spec (schema+retries) │  │ 6 IMPACT  replay old vs new over data  │
-│ 3 COMPILE  spec → apply_extracted(price), no LLM   │  │ 7 CHANGE  diff → copy → generated      │
-│ 4 PROVE    replay: legacy vs extracted vs official │  │           pytest suite → green/red     │
-└────────────────────────────────────────────────────┘  └────────────────────────────────────────┘
-```
+| # | stage | phase | what happens |
+|---|---|---|---|
+| 01 | **Ingest** | 🟢 read-only | Load the legacy engine (read-only) + 20k+ real transactions; classify every messy row with a reason — junk never crashes the pipeline |
+| 02 | **Extract** | 🟢 read-only | The LLM proposes a strict-JSON rule spec: bands, conditions, plain-English summary, honest assumptions. Schema-validated; errors fed back; max 3 attempts |
+| 03 | **Compile** | 🟢 read-only | The spec is deterministically compiled to `apply_extracted(price)`. No model at runtime |
+| 04 | **Prove** | 🟢 read-only | Replay **every** record through legacy code, extracted rule, and statutory oracle. Fidelity % and drift £ are counted, not claimed |
+| 05 | **Edit** | 🟠 gated write | Plain-English rule changes, parsed by a deterministic grammar (not the LLM), previewed as a band-table diff before approval |
+| 06 | **Impact** | 🟠 gated write | Old rule vs new rule over all records: affected count, total £, winners/losers, distribution — the CFO number, computed live |
+| 07 | **Change & Verify** | 🟠 gated write | Unified diff applied to a **guarded copy**; pytest golden cases generated from the historical data; green/red from the exit code, with one automated feedback retry |
 
-Stage 4 replays **three** implementations over every valid record:
+Every stage waits for an explicit **Approve**. Reject halts and invalidates everything
+downstream. Only the LLM extraction can be skipped (it falls back to the cached spec).
 
-| comparison | meaning |
+## The proof model
+
+Stage 4 replays three implementations over every valid record:
+
+| comparison | question it answers |
 |---|---|
-| legacy vs extracted | **extraction fidelity** — did we understand the code? |
-| legacy vs official statutory oracle | **legacy drift** — where does the system disagree with the law, and for how much? |
+| legacy `vs` extracted | **Fidelity** — did the extraction understand the system? |
+| legacy `vs` statutory oracle | **Drift** — where does the system disagree with the law, and for how much? |
 
-The official rates live in `backend/core/oracle.py`, which the legacy module never imports —
-so the drift finding is a genuine cross-check, not circular.
+The statutory rates live in [`backend/core/oracle.py`](backend/core/oracle.py), which the
+legacy module never imports — the drift finding is a genuine cross-check, not circular.
+Extraction mismatches are **flagged on screen, never hidden**: surfacing uncertainty is the
+feature.
 
-### Human-in-the-loop, enforced in code
+<div align="center">
+<img src="docs/impact.png" width="920" alt="Stage 6 — Impact: £23.7M effect of a one-sentence rule change" />
+</div>
 
-- Every stage runs only on an explicit **Approve** (Skip is allowed only for the LLM
-  extraction, which falls back to the cached spec; Reject halts everything downstream).
-- All pipeline writes go through a **write-guard** (`backend/core/guard.py`) that refuses
-  any path outside `workdir/`. The original legacy file is SHA-256 fingerprinted at startup
-  and its integrity is displayed in the UI at all times. The pipeline never invokes git.
-- Every generated change ships as a unified diff with a rationale and the requirement it
-  satisfies, plus a live pytest run — red results are shown, with one automated retry that
-  feeds the failures back to the generator.
+## Guardrails (enforced in code, not prose)
 
-### Robustness
+| guarantee | enforcement |
+|---|---|
+| Nothing runs without approval | FastAPI stage machine rejects out-of-order or unapproved runs (HTTP 409) — [`backend/app.py`](backend/app.py) |
+| The original legacy file is never modified | every write goes through a **write-guard** that raises on any path outside `workdir/` — [`backend/core/guard.py`](backend/core/guard.py) |
+| …and you can see that, live | the legacy file is SHA-256 fingerprinted at startup; integrity is re-checked and displayed in the UI at all times |
+| The model never grades itself | fidelity, drift, impact and test results come from deterministic replay and pytest exit codes only |
+| No surprise commits | the pipeline never invokes git |
+| Bad data can't take it down | every row is classified (blank / junk / non-positive / implausible outlier), counted, excluded from the math, and shown with examples |
 
-- Messy data never crashes anything: rows are classified (blank, junk text, zero/negative,
-  implausible outlier), counted, excluded from the math, and shown with reasons.
-- LLM JSON is schema-validated with a max-3 retry loop feeding exact errors back.
-- All external calls (dataset download, LLM) have timeouts and graceful fallbacks; the whole
-  demo works offline in mock mode.
+## The demo, in 90 seconds
+
+1. **Ingest** — "Here's a legacy tax engine: mainframe-ported Python, zero docs. A
+   consultant would read this for weeks." Approve: 22,000 real UK transactions load and
+   every messy row is triaged.
+2. **Extract** — "The tool read the code. Here's the rule in plain English," side by side
+   with the raw source — including the model's honest assumptions.
+3. **Prove** — the hero moment: **100.00% fidelity** over 21,990 records, *and* the red
+   panel — the legacy code disagrees with the statute book on **17,659 transactions,
+   £35.2M**. Nobody told it where the bug was.
+4. **Edit** — one sentence: *"raise the nil-rate threshold to £300,000."* Preview the parsed
+   change before it applies.
+5. **Impact** — **10,438 real transactions affected, £23.7M** — with the distribution and
+   who wins.
+6. **Change & Verify** — unified diff on a guarded copy, **71 generated golden tests, green**.
+   "Weeks of consultant work in minutes — and nothing changed without my approval."
+
+*Exact figures depend on the dataset snapshot; every number is recomputed live, never asserted.*
 
 ---
 
-## Repository layout
+## Architecture
 
 ```
-legacy/sdlt_engine.py     the "black box" — crusty UK Stamp Duty engine (read-only, never modified)
-backend/core/             deterministic core: oracle, schema, compiler, replay, impact,
-                          editor (plain-English parser), guard, testgen, changegen, ingest, datagen
-backend/llm/              the ONLY code that calls the OpenAI API (stages 2 & 7)
-backend/app.py            FastAPI stage machine with approval gates
-backend/tests/            38 unit tests for the deterministic core
-frontend/                 React + Vite + Tailwind single-page app (Recharts for the impact chart)
-data/cached_spec.json     fallback spec so the demo runs without an API key
-scripts/headless_demo.py  the whole pipeline, no server, no UI
-workdir/                  the only directory the pipeline may write to (gitignored)
+                       ┌─────────────────────────────────────────────┐
+   legacy/             │  backend (FastAPI stage machine, approval   │      frontend
+   sdlt_engine.py ───▶ │  gates, in-memory state)                    │ ◀──  React + Vite +
+   (read-only,         │                                             │      Tailwind + Recharts
+    SHA-256 watched)   │  core/ · deterministic: oracle, schema,     │
+                       │    compiler, replay, impact, editor,        │
+   data/ ────────────▶ │    testgen, changegen, ingest, write-guard  │
+   22k real UK         │  llm/  · the ONLY code that talks to a      │
+   transactions        │    model API (stages 2 & 7, strict JSON)    │
+                       └──────────────────┬──────────────────────────┘
+                                          ▼
+                              workdir/  (the only writable path —
+                              working copy + generated pytest suite)
 ```
 
-## Why UK Stamp Duty?
+```
+legacy/sdlt_engine.py     the "black box" — crusty UK Stamp Duty engine (never modified)
+backend/core/             deterministic core (all the math, all the judging)
+backend/llm/              LLM proposal layer (extraction + code-gen only)
+backend/tests/            38 unit tests for the core
+frontend/                 single-page app
+data/cached_spec.json     fallback spec → the demo runs with no API key
+scripts/headless_demo.py  the entire pipeline in the terminal, no UI
+```
 
-SDLT residential rates are a real, public, band-based rule that changes at every Budget —
-everyone understands "the government moved the threshold." The bundled legacy engine
-deliberately carries a **stale nil-rate band** (the kind of thing that happens when a
-temporary relief ends and nobody updates the batch job), which is exactly the class of bug
-RuleLift's replay proof is designed to surface.
+## FAQ
+
+**Why UK Stamp Duty as the demo?**
+It's a real, public, band-based rule that changes at every Budget — everyone instantly
+understands "the government moved the threshold." And it validates deterministically, so
+the proof is airtight.
+
+**Is the £35M bug real?**
+The bug is planted (a stale nil-rate band — exactly what happens in production when a
+temporary relief ends and nobody updates the batch job), but its *detection* is 100% real:
+deterministic replay against the never-imported statutory oracle. The app has no idea where
+the bug is.
+
+**Do I need an API key?**
+No. Without one, the demo runs end-to-end in mock mode (cached spec + deterministic
+code-gen). With one, extraction and code-gen go live.
+
+**Can it modify my legacy code?**
+It physically can't: every write is routed through a guard that raises on any path outside
+`workdir/`, and the original file's hash is verified on screen throughout.
+
+**Is this limited to tax?**
+The demo is one rule done bulletproof, but the pattern — *extract → compile → replay-prove
+→ edit → impact → test-backed change* — applies to any rule you can replay against
+historical inputs: pricing, commissions, eligibility, billing.
+
+---
+
+<div align="center">
+
+**RuleLift** — legacy rule extraction, proof & safe change.<br/>
+MIT licensed · built with FastAPI, React, and a healthy distrust of unverified model output.
+
+</div>
