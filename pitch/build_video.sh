@@ -49,7 +49,11 @@ scene 7 docs/change.png "Stage 7 · Change & Verify — guarded diff · 71 gener
 scene 8 docs/landing.png "github.com/sambitsargam/rulelift · make demo" \
 "Seven stages. Seven explicit human approvals. The model proposes; deterministic Python disposes. Weeks of consultant archaeology become minutes of proven, test-backed change. RuleLift."
 
-"$FF" -y -loglevel error -f concat -safe 0 -i "$TMP/list.txt" -c copy pitch/RuleLift-demo.mp4
+# re-encode audio at concat time: stream-copied AAC across segment joins can
+# play back silent in QuickTime; one continuous re-encoded track is safe everywhere
+"$FF" -y -loglevel error -f concat -safe 0 -i "$TMP/list.txt" \
+  -c:v copy -c:a aac -b:a 160k -ar 44100 -ac 2 -movflags +faststart \
+  pitch/RuleLift-demo.mp4
 rm -rf "$TMP"
 echo "wrote pitch/RuleLift-demo.mp4"
 afinfo pitch/RuleLift-demo.mp4 2>/dev/null | grep duration || true
